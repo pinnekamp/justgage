@@ -47,7 +47,7 @@ JustGage = function(config) {
 
     // value : float
     // value gauge is showing
-    value: kvLookup('value', config, dataset, 0, 'float'),
+    value: kvLookup('value', config, dataset, [0], 'float'),
 
     // defaults : bool
     // defaults parameter to use
@@ -75,11 +75,11 @@ JustGage = function(config) {
 
     // symbol : string
     // special symbol to show next to value
-    symbol: kvLookup('symbol', config, dataset, ''),
+    symbol: kvLookup('symbol', config, dataset, ['']),
 
     // min : float
     // min value
-    min: kvLookup('min', config, dataset, 0, 'float'),
+    min: kvLookup('min', config, dataset, [0], 'float'),
 
     // minTxt : string
     // min value text
@@ -87,7 +87,7 @@ JustGage = function(config) {
 
     // max : float
     // max value
-    max: kvLookup('max', config, dataset, 100, 'float'),
+    max: kvLookup('max', config, dataset, [100], 'float'),
 
     // maxTxt : string
     // max value text
@@ -228,7 +228,19 @@ JustGage = function(config) {
 
     // pointerOptions : object
     // define pointer look
-    pointerOptions: kvLookup('pointerOptions', config, dataset, [])
+    pointerOptions: kvLookup('pointerOptions', config, dataset, []),
+
+    // displayValueReduction : function
+    // defines function used to reduce display for values of multiple data axes
+    displayValueReduction: kvLookup('displayValueReduction',config,dataset,(x,y) => {return x + '\n' + y}),
+
+    // displayLimitReduction : function
+    // defines function used to reduce display for limits (min/max) of multiple data axes
+    displayLimitReduction: kvLookup('displayLimitReduction',config,dataset,(x,y) => {return x + ' | ' + y}),
+
+    // displayMultipleStacked : bool
+    // whether to show multiple data values stacked or split
+    displayMultipleStacked: kvLookup('displayMultipleStacked',config,dataset,false)
   };
 
   // variables
@@ -254,8 +266,8 @@ JustGage = function(config) {
     maxY;
 
   // overflow values
-  if (obj.config.value > obj.config.max) obj.config.value = obj.config.max;
-  if (obj.config.value < obj.config.min) obj.config.value = obj.config.min;
+  if (obj.config.value[0] > obj.config.max[0]) obj.config.value[0] = obj.config.max[0];
+  if (obj.config.value[0] < obj.config.min[0]) obj.config.value[0] = obj.config.min[0];
   obj.originalValue = kvLookup('value', config, dataset, -1, 'float');
 
   // create canvas
@@ -322,12 +334,12 @@ JustGage = function(config) {
 
     // min
     minFontSize = ((widgetH / 16) > 10) ? (widgetH / 16) : 10;
-    minX = dx + (widgetW / 10) + (widgetW / 6.666666666666667 * obj.config.gaugeWidthScale) / 2;
+    minX = dx + (widgetW / 10) + (widgetW * 0.15 * obj.config.gaugeWidthScale) / 2;
     minY = labelY;
 
     // max
     maxFontSize = ((widgetH / 16) > 10) ? (widgetH / 16) : 10;
-    maxX = dx + widgetW - (widgetW / 10) - (widgetW / 6.666666666666667 * obj.config.gaugeWidthScale) / 2;
+    maxX = dx + widgetW - (widgetW / 10) - (widgetW * 0.15 * obj.config.gaugeWidthScale) / 2;
     maxY = labelY;
   } else {
     if (canvasW > canvasH) { // landscape
@@ -397,31 +409,32 @@ JustGage = function(config) {
   canvasW, canvasH, widgetW, widgetH, aspect, dx, dy, valueFontSize, valueX, valueY, labelFontSize, labelX, labelY, minFontSize, minX, minY, maxFontSize, maxX, maxY = null;
 
   // pki - custom attribute for generating gauge paths
-  obj.canvas.customAttributes.pki = function(value, min, max, w, h, dx, dy, gws, donut, reverse) {
+  obj.canvas.customAttributes.pki = function(value, min, max, w, h, dx, dy, gws, donut, reverse, stacked, idx) {
 
-    var alpha, Ro, Ri, Cx, Cy, Xo, Yo, Xi, Yi, path;
+    var alphaMax, alphaMin, Ro, Ri, Cx, Cy, Xo, Yo, Xi, Yi, Xo0, Yo0, Xi0, Yi0, path;
 
     if (donut) {
-      alpha = (1 - 2 * (value - min) / (max - min)) * Math.PI;
+      // TODO: implement split
+      alphaMax = (1 - 2 * (value[idx] - min[idx]) / (max[idx] - min[idx])) * Math.PI;
       Ro = w / 2 - w / 30;
       Ri = Ro - w / 6.666666666666667 * gws;
 
       Cx = w / 2 + dx;
       Cy = h / 2 + dy;
 
-      Xo = Cx + Ro * Math.cos(alpha);
-      Yo = Cy - Ro * Math.sin(alpha);
-      Xi = Cx + Ri * Math.cos(alpha);
-      Yi = Cy - Ri * Math.sin(alpha);
+      Xo = Cx + Ro * Math.cos(alphaMax);
+      Yo = Cy - Ro * Math.sin(alphaMax);
+      Xi = Cx + Ri * Math.cos(alphaMax);
+      Yi = Cy - Ri * Math.sin(alphaMax);
 
       path = "M" + (Cx - Ri) + "," + Cy + " ";
       path += "L" + (Cx - Ro) + "," + Cy + " ";
-      if (value > ((max - min) / 2)) {
+      if (value[idx] > ((max[idx] - min[idx]) / 2)) {
         path += "A" + Ro + "," + Ro + " 0 0 1 " + (Cx + Ro) + "," + Cy + " ";
       }
       path += "A" + Ro + "," + Ro + " 0 0 1 " + Xo + "," + Yo + " ";
       path += "L" + Xi + "," + Yi + " ";
-      if (value > ((max - min) / 2)) {
+      if (value[idx] > ((max[idx] - min[idx]) / 2)) {
         path += "A" + Ri + "," + Ri + " 0 0 0 " + (Cx + Ri) + "," + Cy + " ";
       }
       path += "A" + Ri + "," + Ri + " 0 0 0 " + (Cx - Ri) + "," + Cy + " ";
@@ -430,10 +443,50 @@ JustGage = function(config) {
       return {
         path: path
       };
+    } else if (stacked) {
+      alphaMin = Math.PI;
+      val = 0;
+      for (i = 0; i<idx;i++){
+        alphaMin -= (value[i] - min[idx]) / (max[idx] - min[idx]) * Math.PI;
+      }
+      alphaMax = Math.max(alphaMin - (value[idx] - min[idx]) / (max[idx] - min[idx]) * Math.PI, 0);
+
+      Ro = w * 0.4;
+      dR = w * 0.15 * gws;
+      RoI = Ro;
+      Ri = RoI - dR;
+
+      Cx = w / 2 + dx;
+      Cy = h / 1.25 + dy;
+
+      Xo0 = Cx + RoI * Math.cos(alphaMin);
+      Yo0 = Cy - RoI * Math.sin(alphaMin);
+      Xi0 = Cx + Ri * Math.cos(alphaMin);
+      Yi0 = Cy - Ri * Math.sin(alphaMin);
+
+      Xo = Cx + RoI * Math.cos(alphaMax);
+      Yo = Cy - RoI * Math.sin(alphaMax);
+      Xi = Cx + Ri * Math.cos(alphaMax);
+      Yi = Cy - Ri * Math.sin(alphaMax);
+
+      path = "M" + Xi0 + "," + Yi0 + " ";
+      path += "L" + Xo0 + "," + Yo0 + " ";
+      path += "A" + RoI + "," + RoI + " 0 0 1 " + Xo + "," + Yo + " ";
+      path += "L" + Xi + "," + Yi + " ";
+      path += "A" + Ri + "," + Ri + " 0 0 0 " + Xi0 + "," + Yi0 + " ";
+      path += "Z ";
+
+      return {
+        path: path
+      };
     } else {
-      alpha = (1 - (value - min) / (max - min)) * Math.PI;
-      Ro = w / 2 - w / 10;
-      Ri = Ro - w / 6.666666666666667 * gws;
+      alphaMin = 0;
+      alphaMax = (1 - (value[idx] - min[idx]) / (max[idx] - min[idx])) * Math.PI;
+
+      Ro = w * 0.4;
+      dR = w * 0.15 * gws / value.length;
+      RoI = Ro - idx * dR;
+      Ri = RoI - dR;
 
       Cx = w / 2 + dx;
       Cy = h / 1.25 + dy;
@@ -443,14 +496,14 @@ JustGage = function(config) {
       // Xi = w / 2 + dx + Ri * Math.cos(alpha);
       // Yi = h - (h - Cy) - Ri * Math.sin(alpha);
 
-      Xo = Cx + Ro * Math.cos(alpha);
-      Yo = Cy - Ro * Math.sin(alpha);
-      Xi = Cx + Ri * Math.cos(alpha);
-      Yi = Cy - Ri * Math.sin(alpha);
+      Xo = Cx + RoI * Math.cos(alphaMax);
+      Yo = Cy - RoI * Math.sin(alphaMax);
+      Xi = Cx + Ri * Math.cos(alphaMax);
+      Yi = Cy - Ri * Math.sin(alphaMax);
 
       path = "M" + (Cx - Ri) + "," + Cy + " ";
-      path += "L" + (Cx - Ro) + "," + Cy + " ";
-      path += "A" + Ro + "," + Ro + " 0 0 1 " + Xo + "," + Yo + " ";
+      path += "L" + (Cx - RoI) + "," + Cy + " ";
+      path += "A" + RoI + "," + RoI + " 0 0 1 " + Xo + "," + Yo + " ";
       path += "L" + Xi + "," + Yi + " ";
       path += "A" + Ri + "," + Ri + " 0 0 0 " + (Cx - Ri) + "," + Cy + " ";
       path += "Z ";
@@ -548,7 +601,7 @@ JustGage = function(config) {
   };
 
   // gauge
-  obj.gauge = obj.canvas.path().attr({
+  obj.gauge = obj.config.value.map((x,y) => {return obj.canvas.path().attr({
     "stroke": "none",
     "fill": obj.config.gaugeColor,
     pki: [
@@ -561,14 +614,16 @@ JustGage = function(config) {
       obj.params.dy,
       obj.config.gaugeWidthScale,
       obj.config.donut,
-      obj.config.reverse
+      obj.config.reverse,
+      obj.config.displayMultipleStacked,
+      y
     ]
-  });
+  })});
 
   // level
-  obj.level = obj.canvas.path().attr({
+  obj.level = obj.config.value.map((x,y) => {return obj.canvas.path().attr({
     "stroke": "none",
-    "fill": getColor(obj.config.value, (obj.config.value - obj.config.min) / (obj.config.max - obj.config.min), obj.config.levelColors, obj.config.noGradient, obj.config.customSectors),
+    "fill": getColor(obj.config.value[y], (obj.config.value[y] - obj.config.min[y]) / (obj.config.max[y] - obj.config.min[y]), obj.config.levelColors, obj.config.noGradient, obj.config.customSectors, obj.config.displayMultipleStacked,y),
     pki: [
       obj.config.min,
       obj.config.min,
@@ -579,9 +634,11 @@ JustGage = function(config) {
       obj.params.dy,
       obj.config.gaugeWidthScale,
       obj.config.donut,
-      obj.config.reverse
+      obj.config.reverse,
+      obj.config.displayMultipleStacked,
+      y
     ]
-  });
+  })});
   if (obj.config.donut) {
     obj.level.transform("r" + obj.config.donutStartAngle + ", " + (obj.params.widgetW / 2 + obj.params.dx) + ", " + (obj.params.widgetH / 2 + obj.params.dy));
   }
@@ -639,14 +696,8 @@ JustGage = function(config) {
     min = obj.config.max;
   }
 
-  obj.txtMinimum = min;
-  if (obj.config.minTxt) {
-    obj.txtMinimum = obj.config.minTxt;
-  } else if (obj.config.humanFriendly) {
-    obj.txtMinimum = humanFriendlyNumber(min, obj.config.humanFriendlyDecimal);
-  } else if (obj.config.formatNumber) {
-    obj.txtMinimum = formatNumber(min);
-  }
+  obj.txtMinimum = min.map(x => formatDisplayValue(x,obj)).reduce(obj.config.displayLimitReduction);
+  
   obj.txtMin = obj.canvas.text(obj.params.minX, obj.params.minY, obj.txtMinimum);
   obj.txtMin.attr({
     "font-size": obj.params.minFontSize,
@@ -662,14 +713,10 @@ JustGage = function(config) {
   if (obj.config.reverse) {
     max = obj.config.min;
   }
-  obj.txtMaximum = max;
-  if (obj.config.maxTxt) {
-    obj.txtMaximum = obj.config.maxTxt;
-  } else if (obj.config.humanFriendly) {
-    obj.txtMaximum = humanFriendlyNumber(max, obj.config.humanFriendlyDecimal);
-  } else if (obj.config.formatNumber) {
-    obj.txtMaximum = formatNumber(max);
-  }
+
+  // reverse maximum, as first value is outside --> right instead of left
+  obj.txtMaximum = max.map(x => formatDisplayValue(x,obj)).reverse().reduce(obj.config.displayLimitReduction);
+
   obj.txtMax = obj.canvas.text(obj.params.maxX, obj.params.maxY, obj.txtMaximum);
   obj.txtMax.attr({
     "font-size": obj.params.maxFontSize,
@@ -697,22 +744,14 @@ JustGage = function(config) {
   defs, svg = null;
 
   // set value to display
-  if (obj.config.textRenderer) {
-    obj.originalValue = obj.config.textRenderer(obj.originalValue);
-  } else if (obj.config.humanFriendly) {
-    obj.originalValue = humanFriendlyNumber(obj.originalValue, obj.config.humanFriendlyDecimal) + obj.config.symbol;
-  } else if (obj.config.formatNumber) {
-    obj.originalValue = formatNumber(obj.originalValue) + obj.config.symbol;
-  } else {
-    obj.originalValue = (obj.originalValue * 1).toFixed(obj.config.decimals) + obj.config.symbol;
-  }
-
+  obj.originalValue = obj.originalValue.map(x => formatDisplayValue(x,obj)).reduce(obj.config.displayValueReduction);
+  
   if (obj.config.counter === true) {
     //on each animation frame
     eve.on("raphael.anim.frame." + (obj.level.id), function() {
       var currentValue = obj.level.attr("pki")[0];
       if (obj.config.reverse) {
-        currentValue = (obj.config.max * 1) + (obj.config.min * 1) - (obj.level.attr("pki")[0] * 1);
+        currentValue = (obj.config.max[0] * 1) + (obj.config.min[0] * 1) - (obj.level.attr("pki")[0] * 1);
       }
       if (obj.config.textRenderer) {
         obj.txtValue.attr("text", obj.config.textRenderer(Math.floor(currentValue)));
@@ -727,28 +766,29 @@ JustGage = function(config) {
       currentValue = null;
     });
     //on animation end
-    eve.on("raphael.anim.finish." + (obj.level.id), function() {
-      obj.txtValue.attr({
-        "text": obj.originalValue
-      });
-      setDy(obj.txtValue, obj.params.valueFontSize, obj.params.valueY);
-    });
+    obj.level.forEach(x => 
+      eve.on("raphael.anim.finish." + (x.id), function() {
+        obj.txtValue.attr({
+          "text": obj.originalValue
+        });
+        setDy(obj.txtValue, obj.params.valueFontSize, obj.params.valueY);
+      }));
   } else {
     //on animation start
-    eve.on("raphael.anim.start." + (obj.level.id), function() {
+    obj.level.forEach(x => eve.on("raphael.anim.start." + (x.id), function() {
       obj.txtValue.attr({
         "text": obj.originalValue
       });
       setDy(obj.txtValue, obj.params.valueFontSize, obj.params.valueY);
-    });
+    }));
   }
 
   // animate gauge level, value & label
   var rvl = obj.config.value;
   if (obj.config.reverse) {
-    rvl = (obj.config.max * 1) + (obj.config.min * 1) - (obj.config.value * 1);
+    rvl = rvl.map((x,y) => {return (obj.config.max[y] * 1) + (obj.config.min[y] * 1) - (x * 1)});
   }
-  obj.level.animate({
+  obj.level.forEach((x,y) => x.animate({
     pki: [
       rvl,
       obj.config.min,
@@ -759,16 +799,18 @@ JustGage = function(config) {
       obj.params.dy,
       obj.config.gaugeWidthScale,
       obj.config.donut,
-      obj.config.reverse
+      obj.config.reverse,
+      obj.config.displayMultipleStacked,
+      y
     ]
-  }, obj.config.startAnimationTime, obj.config.startAnimationType, obj.config.onAnimationEnd);
+  }, obj.config.startAnimationTime, obj.config.startAnimationType, obj.config.onAnimationEnd));
 
   if (obj.config.pointer) {
     obj.needle.animate({
       ndl: [
         rvl,
-        obj.config.min,
-        obj.config.max,
+        obj.config.min[0],
+        obj.config.max[0],
         obj.params.widgetW,
         obj.params.widgetH,
         obj.params.dx,
@@ -793,58 +835,18 @@ JustGage.prototype.refresh = function(val, max) {
   var obj = this;
   var displayVal, color, max = max || null;
 
-  // set new max
-  if (max !== null) {
-    obj.config.max = max;
-    // TODO: update customSectors
-
-    obj.txtMaximum = obj.config.max;
-    if (obj.config.maxTxt) {
-      obj.txtMaximum = obj.config.maxTxt;
-    } else if (obj.config.humanFriendly) {
-      obj.txtMaximum = humanFriendlyNumber(obj.config.max, obj.config.humanFriendlyDecimal);
-    } else if (obj.config.formatNumber) {
-      obj.txtMaximum = formatNumber(obj.config.max);
-    }
-    if (!obj.config.reverse) {
-      obj.txtMax.attr({
-        "text": obj.txtMaximum
-      });
-      setDy(obj.txtMax, obj.params.maxFontSize, obj.params.maxY);
-    } else {
-      obj.txtMin.attr({
-        "text": obj.txtMaximum
-      });
-      obj.txtMax.attr({
-        "text": obj.txtMinimum
-      });
-      setDy(obj.txtMin, obj.params.minFontSize, obj.params.minY);
-      setDy(obj.txtMax, obj.params.minFontSize, obj.params.minY);
-    }
-  }
-
   // overflow values
   displayVal = val;
-  if ((val * 1) > (obj.config.max * 1)) {
-    val = (obj.config.max * 1);
-  }
-  if ((val * 1) < (obj.config.min * 1)) {
-    val = (obj.config.min * 1);
-  }
+  val = checkOverflow(val,obj);
 
-  color = getColor(val, (val - obj.config.min) / (obj.config.max - obj.config.min), obj.config.levelColors, obj.config.noGradient, obj.config.customSectors);
+  color = val.map((x,i) => getColor(x, (x - obj.config.min[i]) / (obj.config.max[i] - obj.config.min[i]), obj.config.levelColors, obj.config.noGradient, obj.config.customSectors,obj.config.displayMultipleStacked,i));
 
-  if (obj.config.textRenderer) {
-    displayVal = obj.config.textRenderer(displayVal);
-  } else if (obj.config.humanFriendly) {
-    displayVal = humanFriendlyNumber(displayVal, obj.config.humanFriendlyDecimal) + obj.config.symbol;
-  } else if (obj.config.formatNumber) {
-    displayVal = formatNumber((displayVal * 1).toFixed(obj.config.decimals)) + obj.config.symbol;
-  } else {
-    displayVal = (displayVal * 1).toFixed(obj.config.decimals) + obj.config.symbol;
-  }
+
+  displayVal = val.map(x => formatDisplayValue(x,obj)).reduce(obj.config.displayValueReduction);
+  
+  
   obj.originalValue = displayVal;
-  obj.config.value = val * 1;
+  obj.config.value = val;
 
   if (!obj.config.counter) {
     obj.txtValue.attr({
@@ -855,10 +857,10 @@ JustGage.prototype.refresh = function(val, max) {
 
   var rvl = obj.config.value;
   if (obj.config.reverse) {
-    rvl = (obj.config.max * 1) + (obj.config.min * 1) - (obj.config.value * 1);
+    rvl = rvl.ForEach((x,y) => {return (obj.config.max[y] * 1) + (obj.config.min[y] * 1) - (x * 1)});
   }
 
-  obj.level.animate({
+  obj.level.forEach((x,y) => x.animate({
     pki: [
       rvl,
       obj.config.min,
@@ -869,17 +871,19 @@ JustGage.prototype.refresh = function(val, max) {
       obj.params.dy,
       obj.config.gaugeWidthScale,
       obj.config.donut,
-      obj.config.reverse
+      obj.config.reverse,
+      obj.config.displayMultipleStacked,
+      y
     ],
-    "fill": color
-  }, obj.config.refreshAnimationTime, obj.config.refreshAnimationType, obj.config.onAnimationEnd);
+    "fill": color[y]
+  }, obj.config.refreshAnimationTime, obj.config.refreshAnimationType, obj.config.onAnimationEnd));
 
   if (obj.config.pointer) {
     obj.needle.animate({
       ndl: [
         rvl,
-        obj.config.min,
-        obj.config.max,
+        obj.config.min[0],
+        obj.config.max[0],
         obj.params.widgetW,
         obj.params.widgetH,
         obj.params.dx,
@@ -991,9 +995,15 @@ function kvLookup(key, tablea, tableb, defval, datatype, delimiter) {
       if (datatype !== null && datatype !== undefined) {
         switch (datatype) {
           case 'int':
-            val = parseInt(val, 10);
+            if (val.length !== undefined)
+              val = val.map(x => parseInt(x,10));
+            else
+              val = parseInt(val, 10);
             break;
           case 'float':
+          if (val.length !== undefined)
+            val = val.map(parseFloat);
+          else
             val = parseFloat(val);
             break;
           default:
@@ -1006,10 +1016,15 @@ function kvLookup(key, tablea, tableb, defval, datatype, delimiter) {
 };
 
 /** Get color for value */
-function getColor(val, pct, col, noGradient, custSec) {
+function getColor(val, pct, col, noGradient, custSec, stacked, idx) {
 
   var no, inc, colors, percentage, rval, gval, bval, lower, upper, range, rangePct, pctLower, pctUpper, color;
   var noGradient = noGradient || custSec.length > 0;
+
+  if (stacked){
+    return col[idx];
+  }
+
 
   if (custSec.length > 0) {
     if (custSec.percents === true) val = pct * 100;
@@ -1178,3 +1193,30 @@ function extend(out) {
 
   return out;
 };
+
+function checkOverflow(val,obj) {
+  val = val.map((x,i) => {
+    if ((x * 1) > (obj.config.max[i] * 1)) {
+      x = (obj.config.max[0] * 1);
+    }
+    if ((x * 1) < (obj.config.min[i] * 1)) {
+      x = (obj.config.min[i] * 1);
+    }
+    return x;
+  });
+  return val;
+}
+
+function formatDisplayValue(val,obj) {
+  
+  if (obj.config.textRenderer) {
+    displayVal = obj.config.textRenderer(val);
+  } else if (obj.config.humanFriendly) {
+    displayVal = humanFriendlyNumber(val, obj.config.humanFriendlyDecimal) + obj.config.symbol;
+  } else if (obj.config.formatNumber) {
+    displayVal = formatNumber((val * 1).toFixed(obj.config.decimals)) + obj.config.symbol;
+  } else {
+    displayVal = (val * 1).toFixed(obj.config.decimals) + obj.config.symbol;
+  }
+  return displayVal;
+}

@@ -41,15 +41,21 @@
         var g1 = new JustGage({
             id: "g1",
             title: "Max is 100.",
-            value: 50,
-            min: 0,
-            max: 100,
+            value: [40,50],
+            min: [0,0],
+            max: [100,100],
             decimals: 0,
-            gaugeWidthScale: 0.6
+            gaugeWidthScale: 0.6,
+            startAnimationTime: 0,
+            refreshAnimationTime: 0,
+            displayMultipleStacked: true,
+            levelColors: ["#a9d70b", "#f9c802"],
+            hideMinMax: true
+
         });
 
         document.getElementById('g1_refresh').addEventListener('click', function() {
-            g1.refresh(getRandomInt(0, 100));
+            g1.refresh([getRandomInt(10, 50),getRandomInt(10, 50)]);
         });
 
     });
