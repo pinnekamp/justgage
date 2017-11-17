@@ -1016,12 +1016,12 @@ function kvLookup(key, tablea, tableb, defval, datatype, delimiter) {
 };
 
 /** Get color for value */
-function getColor(val, pct, col, noGradient, custSec, stacked, idx) {
+function getColor(val, pct, col, noGradient, custSec, colorById, idx) {
 
   var no, inc, colors, percentage, rval, gval, bval, lower, upper, range, rangePct, pctLower, pctUpper, color;
   var noGradient = noGradient || custSec.length > 0;
 
-  if (stacked){
+  if (colorById || (noGradient && custSec.length == 0)){
     return col[idx];
   }
 
