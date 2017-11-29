@@ -352,7 +352,7 @@ JustGage = function(config) {
       }
     } else if (canvasW < canvasH) { // portrait
       widgetW = canvasW;
-      widgetH = widgetW / 2;
+      widgetH = widgetW * 0.5;
     } else { // square
       widgetW = canvasW;
       widgetH = widgetW * 0.5;
@@ -365,7 +365,7 @@ JustGage = function(config) {
     // value
     valueFontSize = ((widgetH / 6.5) > obj.config.valueMinFontSize) ? (widgetH / 6.5) : obj.config.valueMinFontSize;
     valueX = dx + widgetW / 2;
-    valueY = dy + widgetH / 1.275;
+    valueY = dy + widgetH / 1.275  - ( obj.config.value.length > 1 ? valueFontSize * (obj.config.displayValueReduction.toString().split("\\n").length -1) : 0);
 
     // label
     labelFontSize = ((widgetH / 16) > obj.config.labelMinFontSize) ? (widgetH / 16) : obj.config.labelMinFontSize;
@@ -451,7 +451,7 @@ JustGage = function(config) {
       }
       alphaMax = Math.max(alphaMin - (value[idx] - min[idx]) / (max[idx] - min[idx]) * Math.PI, 0);
 
-      Ro = w * 0.4;
+      Ro = w * 0.45;
       dR = w * 0.15 * gws;
       RoI = Ro;
       Ri = RoI - dR;
@@ -483,7 +483,7 @@ JustGage = function(config) {
       alphaMin = 0;
       alphaMax = (1 - (value[idx] - min[idx]) / (max[idx] - min[idx])) * Math.PI;
 
-      Ro = w * 0.4;
+      Ro = w * 0.45;
       dR = w * 0.15 * gws / value.length;
       RoI = Ro - idx * dR;
       Ri = RoI - dR;
@@ -1016,12 +1016,12 @@ function kvLookup(key, tablea, tableb, defval, datatype, delimiter) {
 };
 
 /** Get color for value */
-function getColor(val, pct, col, noGradient, custSec, stacked, idx) {
+function getColor(val, pct, col, noGradient, custSec, colorById, idx) {
 
   var no, inc, colors, percentage, rval, gval, bval, lower, upper, range, rangePct, pctLower, pctUpper, color;
   var noGradient = noGradient || custSec.length > 0;
 
-  if (stacked){
+  if (colorById || (noGradient && custSec.length == 0)){
     return col[idx];
   }
 
