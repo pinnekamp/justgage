@@ -2,6 +2,17 @@ JustGage is a handy JavaScript plugin for generating and animating nice &amp; cl
 
 ###Update log
 
+######WIP
+
+added support for multiple data in one gauge either as a split gauge or stacked
+
+value, min, max must be arrays
+
+new Config options (see src for details):
+* displayValueReduction
+* displayLimitReduction
+* displayMultipleStacked
+
 ######September 26, 2016. - release 1.2.9
 * **customSectors** receives structural update + additional "percents" feature (define ranges in %).
 ```javascript
