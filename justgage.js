@@ -365,7 +365,7 @@ JustGage = function(config) {
     // value
     valueFontSize = ((widgetH / 6.5) > obj.config.valueMinFontSize) ? (widgetH / 6.5) : obj.config.valueMinFontSize;
     valueX = dx + widgetW / 2;
-    valueY = dy + widgetH / 1.275  - ( obj.config.value.length > 1 ? valueFontSize * (obj.config.displayValueReduction.toString().split("\\n").length -1) : 0);
+    valueY = dy + widgetH / 1.15  - ( obj.config.value.length > 1 ? valueFontSize * (obj.config.displayValueReduction.toString().split("\\n").length -1) : 0);
 
     // label
     labelFontSize = ((widgetH / 16) > obj.config.labelMinFontSize) ? (widgetH / 16) : obj.config.labelMinFontSize;
@@ -457,7 +457,7 @@ JustGage = function(config) {
       Ri = RoI - dR;
 
       Cx = w / 2 + dx;
-      Cy = h / 1.25 + dy;
+      Cy = h / 1.05 + dy;
 
       Xo0 = Cx + RoI * Math.cos(alphaMin);
       Yo0 = Cy - RoI * Math.sin(alphaMin);
@@ -489,12 +489,7 @@ JustGage = function(config) {
       Ri = RoI - dR;
 
       Cx = w / 2 + dx;
-      Cy = h / 1.25 + dy;
-
-      // Xo = w / 2 + dx + Ro * Math.cos(alpha);
-      // Yo = h - (h - Cy) - Ro * Math.sin(alpha);
-      // Xi = w / 2 + dx + Ri * Math.cos(alpha);
-      // Yi = h - (h - Cy) - Ri * Math.sin(alpha);
+      Cy = h / 1.05 + dy;
 
       Xo = Cx + RoI * Math.cos(alphaMax);
       Yo = Cy - RoI * Math.sin(alphaMax);
